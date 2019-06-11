@@ -7,16 +7,22 @@
 # Single threaded so scales with CPU hz
 
 from zipfile import ZipFile
+import zipfile
 import string, itertools, sys, os
 
 def hackZip(target, pwd):
     try:
         with ZipFile(target, "r") as myZip:
-            myZip.extractall(pwd=pwd)
+            myZip.extractall(pwd=pwd.encode("utf-8"))
             print(target, "hacked with password", pwd)
-    except Exception as e:
+            return True
+    except RuntimeError as e:
         print("Hack failed with pass '{}'".format(pwd))
-        raise e
+        return False
+    except zipfile.BadZipFile as e:
+        # Raised on header collision or corrupted ZIP. Likely the former.
+        print("Header collision. ZIP possibly corrupt (unlikely)")
+        return False
 
 def genPass():
     chars = string.printable
@@ -28,10 +34,8 @@ def genPass():
 def brute(target):
     passGen = genPass()
     for pwd in passGen:
-        try:
-            hackZip(target, pwd)
-        except:
-            pass
+        if hackZip(target, pwd) == True:
+            break
 
 if __name__ == "__main__":
     path = sys.argv[1]
